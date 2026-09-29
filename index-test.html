@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Industrie 4.0 AR Mockup</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+
+      --background: rgba(10, 15, 20, 0.88);
+      --background-light: rgba(20, 28, 35, 0.92);
+      --border: rgba(255, 255, 255, 0.25);
+      --text: #ffffff;
+      --text-secondary: #aeb8c2;
+
+      --green: #35d06f;
+      --yellow: #ffc107;
+      --red: #ff3b30;
+
+      --menu-width: 270px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    /* --------------------------------------------------
+       AR CAMERA
+       -------------------------------------------------- */
+
+    video,
+    canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: contain !important;
+    }
+
+    /* --------------------------------------------------
+       APP OVERLAY
+       -------------------------------------------------- */
+
+    #app {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    /* --------------------------------------------------
+       MENU BUTTON
+       -------------------------------------------------- */
+
+    #menu-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+
+      width: 52px;
+      height: 52px;
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+
+      background: var(--background);
+
+      color: var(--text);
+      font-size: 26px;
+
+      cursor: pointer;
+      pointer-events: auto;
+
+      backdrop-filter: blur(8px);
+    }
+
+    #menu-button:hover {
+      background: rgba(40, 50, 60, 0.95);
+    }
+
+    /* --------------------------------------------------
+       SERVER STATUS
+       -------------------------------------------------- */
+
+    #connection-status {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 10px 14px;
+
+      border: 1px solid var(--border);
+      border-radius: 8px;
+
+      background: var(--background);
+
+      font-size: 14px;
+
+      backdrop-filter: blur(8px);
+    }
+
+    #connection-indicator {
+      width: 10px;
+      height: 10px;
+
+      border-radius: 50%;
+
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* --------------------------------------------------
+       SIDE MENU
+       -------------------------------------------------- */
+
+    #side-menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+
+      width: var(--menu-width);
+      height: 100%;
+
+      padding: 24px 18px;
+
+      background: var(--background);
+
+      border-right: 1px solid var(--border);
+
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+
+      pointer-events: auto;
+
+      backdrop-filter: blur(12px);
+    }
+
+    #side-menu.open {
+      transform: translateX(0);
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 30px;
+    }
+
+    .menu-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #close-menu {
+      width: 36px;
+      height: 36px;
+
+      border: 0;
+      border-radius: 6px;
+
+      background: transparent;
+
+      color: var(--text);
+      font-size: 22px;
+
+      cursor: pointer;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      width: 100%;
+
+      padding: 14px 12px;
+      margin-bottom: 6px;
+
+      border: 0;
+      border-radius: 7px;
+
+      background: transparent;
+
+      color: var(--text);
+
+      text-align: left;
+      font-size: 15px;
+
+      cursor: pointer;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .menu-icon {
+      width: 24px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .menu-divider {
+      height: 1px;
+      margin: 18px 0;
+
+      background: var(--border);
+    }
+
+    .menu-information {
+      padding: 10px 12px;
+
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* --------------------------------------------------
+       HOME SCREEN
+       -------------------------------------------------- */
+
+    #home-panel {
+      position: absolute;
+
+      left: 50%;
+      bottom: 30px;
+
+      transform: translateX(-50%);
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+
+      pointer-events: auto;
+    }
+
+    #scan-button {
+      padding: 14px 24px;
+
+      border: 1px solid var(--border);
+      border-radius: 8px;
+
+      background: var(--background);
+
+      color: var(--text);
+
+      font-size: 15px;
+      font-weight: bold;
+
+      cursor: pointer;
+
+      backdrop-filter: blur(8px);
+    }
+
+    #scan-button:hover {
+      background: rgba(40, 50, 60, 0.95);
+    }
+
+    /* --------------------------------------------------
+       STATION CONTAINER
+       -------------------------------------------------- */
+
+    #station-container {
+      display: none;
+
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      width: 310px;
+
+      pointer-events: auto;
+    }
+
+    #station-container.visible {
+      display: block;
+    }
+
+    /* Verbindungslinie zur Station */
+    #station-line {
+      position: absolute;
+
+      left: 50%;
+      top: 100%;
+
+      width: 2px;
+      height: 120px;
+
+      background: rgba(255, 255, 255, 0.75);
+
+      transform-origin: top center;
+
+      pointer-events: none;
+    }
+
+    /* --------------------------------------------------
+       STATION WINDOW
+       -------------------------------------------------- */
+
+    #station-window {
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+
+      background: var(--background);
+
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+
+      backdrop-filter: blur(10px);
+    }
+
+    .station-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 14px 16px;
+
+      border-bottom: 1px solid var(--border);
+    }
+
+    .station-name {
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .station-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      border: 0;
+      background: transparent;
+
+      color: var(--text);
+
+      cursor: pointer;
+    }
+
+    /* --------------------------------------------------
+       STATUS SYMBOL
+       -------------------------------------------------- */
+
+    .status-icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      width: 28px;
+      height: 28px;
+
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .status-green {
+      color: var(--green);
+    }
+
+    .status-yellow {
+      color: var(--yellow);
+    }
+
+    .status-red {
+      color: var(--red);
+    }
+
+    /* --------------------------------------------------
+       SENSOR DATA
+       -------------------------------------------------- */
+
+    .station-body {
+      padding: 14px 16px;
+    }
+
+    .sensor-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 9px 0;
+
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+      font-size: 14px;
+    }
+
+    .sensor-row:last-child {
+      border-bottom: 0;
+    }
+
+    .sensor-name {
+      color: var(--text-secondary);
+    }
+
+    .sensor-value {
+      font-weight: bold;
+    }
+
+    /* --------------------------------------------------
+       PROBLEM WINDOWS
+       -------------------------------------------------- */
+
+    .problem-window {
+      display: none;
+
+      width: 100%;
+
+      margin-top: 8px;
+
+      padding: 12px;
+
+      border-radius: 8px;
+
+      background: var(--background-light);
+    }
+
+    .problem-window.visible {
+      display: block;
+    }
+
+    .problem-window.yellow {
+      border: 1px solid var(--yellow);
+    }
+
+    .problem-window.red {
+      border: 1px solid var(--red);
+    }
+
+    .problem-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      margin-bottom: 8px;
+
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .problem-list {
+      margin: 0;
+      padding-left: 20px;
+
+      color: var(--text-secondary);
+
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .problem-window.yellow .problem-title {
+      color: var(--yellow);
+    }
+
+    .problem-window.red .problem-title {
+      color: var(--red);
+    }
+
+    /* --------------------------------------------------
+       SCAN INFORMATION
+       -------------------------------------------------- */
+
+    #scan-information {
+      display: none;
+
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      padding: 20px 24px;
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+
+      background: var(--background);
+
+      text-align: center;
+
+      backdrop-filter: blur(10px);
+
+      pointer-events: auto;
+    }
+
+    #scan-information.visible {
+      display: block;
+    }
+
+    #scan-information-title {
+      margin-bottom: 8px;
+
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    #scan-information-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* --------------------------------------------------
+       RESPONSIVE
+       -------------------------------------------------- */
+
+    @media (max-width: 600px) {
+
+      :root {
+        --menu-width: 240px;
+      }
+
+      #menu-button {
+        top: 12px;
+        left: 12px;
+      }
+
+      #connection-status {
+        top: 12px;
+        right: 12px;
+      }
+
+      #station-container {
+        width: calc(100vw - 40px);
+        max-width: 310px;
+      }
+
+      #home-panel {
+        bottom: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==================================================
+       AR SCENE
+       ================================================== -->
+
+  <a-scene
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true"
+    embedded
+    arjs="
+      sourceType: webcam;
+      facingMode: environment;
+      sourceWidth: 1280;
+      sourceHeight: 720;
+      displayWidth: 1280;
+      displayHeight: 720;
+      debugUIEnabled: false;
+    "
+  >
+
+    <!-- Hiro Marker -->
+    <a-marker
+      preset="hiro"
+      id="hiro-marker"
+    >
+    </a-marker>
+
+    <!-- Kamera -->
+    <a-entity camera></a-entity>
+
+  </a-scene>
+
+
+  <!-- ==================================================
+       UI OVERLAY
+       ================================================== -->
+
+  <div id="app">
+
+    <!-- Menü öffnen -->
+    <button
+      id="menu-button"
+      aria-label="Menü öffnen"
+    >
+      ☰
+    </button>
+
+
+    <!-- Server-Verbindungsstatus -->
+    <div id="connection-status">
+      <span id="connection-indicator"></span>
+      <span id="connection-text">Server verbunden</span>
+    </div>
+
+
+    <!-- ==================================================
+         SEITENMENÜ
+         ================================================== -->
+
+    <aside id="side-menu">
+
+      <div class="menu-header">
+
+        <div class="menu-title">
+          Menü
+        </div>
+
+        <button
+          id="close-menu"
+          aria-label="Menü schließen"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <button class="menu-item" id="home-menu-item">
+        <span class="menu-icon">⌂</span>
+        <span>Home</span>
+      </button>
+
+
+      <button class="menu-item" id="server-menu-item">
+        <span class="menu-icon">●</span>
+        <span>Serverstatus</span>
+      </button>
+
+
+      <div class="menu-divider"></div>
+
+
+      <div class="menu-information">
+
+        <div>
+          <strong>Uhrzeit</strong>
+        </div>
+
+        <div id="menu-time">
+          --:--:--
+        </div>
+
+        <br>
+
+        <div>
+          <strong>Datum</strong>
+        </div>
+
+        <div id="menu-date">
+          --.--.----
+        </div>
+
+      </div>
+
+    </aside>
+
+
+    <!-- ==================================================
+         HOME / QR-CODE
+         ================================================== -->
+
+    <div id="home-panel">
+
+      <button id="scan-button">
+        QR-Code scannen
+      </button>
+
+    </div>
+
+
+    <!-- ==================================================
+         QR-SCAN INFORMATION
+         ================================================== -->
+
+    <div id="scan-information">
+
+      <div id="scan-information-title">
+        QR-Code Scan
+      </div>
+
+      <div id="scan-information-text">
+        QR-Code wird für die Mockup-Darstellung simuliert.
+      </div>
+
+    </div>
+
+
+    <!-- ==================================================
+         STATIONSFENSTER
+         ================================================== -->
+
+    <div id="station-container">
+
+      <!-- Verbindungslinie zur AR-Station -->
+      <div id="station-line"></div>
+
+
+      <div id="station-window">
+
+        <!-- Kopfzeile -->
+        <div class="station-header">
+
+          <div class="station-name">
+            Station 01
+          </div>
+
+
+          <!-- Status -->
+          <button
+            class="station-status"
+            id="station-status-button"
+            aria-label="Stationsstatus"
+          >
+
+            <span
+              class="status-icon status-yellow"
+              id="station-status-icon"
+            >
+              ⚠
+            </span>
+
+          </button>
+
+        </div>
+
+
+        <!-- Sensordaten -->
+        <div class="station-body">
+
+          <div class="sensor-row">
+
+            <span class="sensor-name">
+              Temperatur
+            </span>
+
+            <span class="sensor-value">
+              42,7 °C
+            </span>
+
+          </div>
+
+
+          <div class="sensor-row">
+
+            <span class="sensor-name">
+              Druck
+            </span>
+
+            <span class="sensor-value">
+              5,2 bar
+            </span>
+
+          </div>
+
+
+          <div class="sensor-row">
+
+            <span class="sensor-name">
+              Drehzahl
+            </span>
+
+            <span class="sensor-value">
+              1.420 rpm
+            </span>
+
+          </div>
+
+
+          <div class="sensor-row">
+
+            <span class="sensor-name">
+              Vibration
+            </span>
+
+            <span class="sensor-value">
+              2,4 mm/s
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           GELBE PROBLEME
+           ================================================== -->
+
+      <div
+        class="problem-window yellow"
+        id="yellow-problems"
+      >
+
+        <div class="problem-title">
+          <span>⚠</span>
+          <span>Geringere Probleme</span>
+        </div>
+
+        <ul class="problem-list">
+
+          <li>
+            Erhöhte Temperatur
+          </li>
+
+          <li>
+            Leichte Vibration
+          </li>
+
+        </ul>
+
+      </div>
+
+
+      <!-- ==================================================
+           ROTE PROBLEME
+           ================================================== -->
+
+      <div
+        class="problem-window red"
+        id="red-problems"
+      >
+
+        <div class="problem-title">
+          <span>⚠</span>
+          <span>Erhebliche Probleme</span>
+        </div>
+
+        <ul class="problem-list">
+
+          <li>
+            Kritischer Druckverlust
+          </li>
+
+          <li>
+            Motordrehzahl außerhalb des Bereichs
+          </li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       JAVASCRIPT
+       ================================================== -->
+
+  <script>
+
+    /* --------------------------------------------------
+       ELEMENTE
+       -------------------------------------------------- */
+
+    const overlay = document.getElementById('app');
+
+    const hiroMarker = document.getElementById('hiro-marker');
+
+    const menuButton = document.getElementById('menu-button');
+    const closeMenuButton = document.getElementById('close-menu');
+
+    const sideMenu = document.getElementById('side-menu');
+
+    const homeMenuItem = document.getElementById('home-menu-item');
+    const serverMenuItem = document.getElementById('server-menu-item');
+
+    const scanButton = document.getElementById('scan-button');
+    const scanInformation = document.getElementById('scan-information');
+
+    const stationContainer =
+      document.getElementById('station-container');
+
+    const stationStatusButton =
+      document.getElementById('station-status-button');
+
+    const yellowProblems =
+      document.getElementById('yellow-problems');
+
+    const redProblems =
+      document.getElementById('red-problems');
+
+    const menuTime =
+      document.getElementById('menu-time');
+
+    const menuDate =
+      document.getElementById('menu-date');
+
+
+    /* --------------------------------------------------
+       MENÜ
+       -------------------------------------------------- */
+
+    menuButton.addEventListener('click', () => {
+      sideMenu.classList.add('open');
+    });
+
+
+    closeMenuButton.addEventListener('click', () => {
+      sideMenu.classList.remove('open');
+    });
+
+
+    homeMenuItem.addEventListener('click', () => {
+
+      sideMenu.classList.remove('open');
+
+      scanInformation.classList.remove('visible');
+
+    });
+
+
+    serverMenuItem.addEventListener('click', () => {
+
+      sideMenu.classList.remove('open');
+
+      alert('Server verbunden');
+
+    });
+
+
+    /* --------------------------------------------------
+       QR-CODE MOCKUP
+       -------------------------------------------------- */
+
+    scanButton.addEventListener('click', () => {
+
+      scanInformation.classList.toggle('visible');
+
+    });
+
+
+    /* --------------------------------------------------
+       STATION
+       -------------------------------------------------- */
+
+    let stationVisible = false;
+
+
+    hiroMarker.addEventListener('markerFound', () => {
+
+      console.debug('Marker found');
+
+      stationVisible = true;
+
+      stationContainer.classList.add('visible');
+
+    });
+
+
+    hiroMarker.addEventListener('markerLost', () => {
+
+      console.debug('Marker lost');
+
+      stationVisible = false;
+
+      stationContainer.classList.remove('visible');
+
+      yellowProblems.classList.remove('visible');
+      redProblems.classList.remove('visible');
+
+    });
+
+
+    /* --------------------------------------------------
+       STATUS / PROBLEME
+       -------------------------------------------------- */
+
+    stationStatusButton.addEventListener('click', () => {
+
+      /*
+       * Für das Mockup werden beide Problemgruppen
+       * beim Anklicken des Statussymbols angezeigt.
+       *
+       * Später kann hier abhängig vom tatsächlichen
+       * Stationsstatus entschieden werden, welches
+       * Fenster geöffnet wird.
+       */
+
+      yellowProblems.classList.toggle('visible');
+
+      redProblems.classList.toggle('visible');
+
+    });
+
+
+    /* --------------------------------------------------
+       UHRZEIT UND DATUM
+       -------------------------------------------------- */
+
+    function updateDateTime() {
+
+      const now = new Date();
+
+      const time = now.toLocaleTimeString(
+        'de-DE',
+        {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }
+      );
+
+      const date = now.toLocaleDateString(
+        'de-DE',
+        {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }
+      );
+
+      menuTime.textContent = time;
+      menuDate.textContent = date;
+
+    }
+
+
+    updateDateTime();
+
+    setInterval(updateDateTime, 1000);
+
+
+    /* --------------------------------------------------
+       DEBUG-FUNKTIONEN
+       -------------------------------------------------- */
+
+    window.fireEventMarkerFound = () => {
+
+      const event = new CustomEvent('markerFound');
+
+      hiroMarker.dispatchEvent(event);
+
+    };
+
+
+    window.fireEventMarkerLost = () => {
+
+      const event = new CustomEvent('markerLost');
+
+      hiroMarker.dispatchEvent(event);
+
+    };
+
+  </script>
+
+</body>
+</html>
