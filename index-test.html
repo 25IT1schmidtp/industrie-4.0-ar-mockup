@@ -1,22 +1,32 @@
 ```html
 <!doctype html>
 <html lang="de">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Industrie 4.0 AR Mockup</title>
 
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+  <!-- AR.js -->
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
 
   <style>
+
+    /* ==================================================
+       GRUNDLEGENDE VARIABLEN
+       ================================================== */
+
     :root {
       color-scheme: dark;
 
-      --background: rgba(10, 15, 20, 0.90);
-      --background-light: rgba(20, 28, 35, 0.95);
-      --border: rgba(255, 255, 255, 0.25);
+      --background: rgba(10, 15, 20, 0.92);
+      --background-light: rgba(20, 28, 35, 0.96);
+
+      --border: rgba(255, 255, 255, 0.22);
 
       --text: #ffffff;
       --text-secondary: #aeb8c2;
@@ -25,92 +35,133 @@
       --yellow: #ffc107;
       --red: #ff3b30;
 
-      --menu-width: 270px;
+      --menu-width: 280px;
     }
+
 
     * {
       box-sizing: border-box;
     }
 
+
     body {
       margin: 0;
+
       font-family: Arial, sans-serif;
+
       overflow: hidden;
+
       color: var(--text);
     }
 
-    video,
-    canvas {
-      width: 100vw !important;
-      height: 100vh !important;
-      object-fit: contain !important;
-    }
-
-    /* ==================================================
-       APP
-       ================================================== */
-
-    #app {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
 
     button {
       font-family: inherit;
     }
 
+
     /* ==================================================
-       MENU BUTTON
+       AR KAMERA
+       ================================================== */
+
+    video,
+    canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+
+      object-fit: contain !important;
+    }
+
+
+    /* ==================================================
+       UI CONTAINER
+       ================================================== */
+
+    #app {
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 10;
+
+      pointer-events: none;
+    }
+
+
+    /* ==================================================
+       OBERER BEREICH
+       ================================================== */
+
+    #top-bar {
+      position: absolute;
+
+      top: 0;
+      left: 0;
+      right: 0;
+
+      display: flex;
+
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 16px 20px;
+
+      pointer-events: none;
+    }
+
+
+    /* ==================================================
+       MENÜ BUTTON
        ================================================== */
 
     #menu-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-
-      width: 52px;
-      height: 52px;
+      width: 50px;
+      height: 50px;
 
       border: 1px solid var(--border);
+
       border-radius: 10px;
 
       background: var(--background);
 
       color: var(--text);
-      font-size: 26px;
+
+      font-size: 25px;
 
       cursor: pointer;
+
       pointer-events: auto;
 
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
+
 
     /* ==================================================
        SERVER STATUS
        ================================================== */
 
     #connection-status {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-
       display: flex;
+
       align-items: center;
+
       gap: 8px;
 
       padding: 10px 14px;
 
       border: 1px solid var(--border);
+
       border-radius: 8px;
 
       background: var(--background);
 
       font-size: 14px;
 
-      backdrop-filter: blur(8px);
+      pointer-events: auto;
+
+      backdrop-filter: blur(10px);
     }
+
 
     #connection-indicator {
       width: 10px;
@@ -119,8 +170,138 @@
       border-radius: 50%;
 
       background: var(--green);
-      box-shadow: 0 0 8px var(--green);
+
+      box-shadow:
+        0 0 8px var(--green);
     }
+
+
+    /* ==================================================
+       HAUPTMENÜ
+       ================================================== */
+
+    #home-screen {
+      position: absolute;
+
+      inset: 0;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      justify-content: center;
+
+      padding: 80px 20px 100px;
+
+      pointer-events: none;
+    }
+
+
+    #home-content {
+      width: min(90vw, 420px);
+
+      padding: 30px;
+
+      border: 1px solid var(--border);
+
+      border-radius: 14px;
+
+      background: var(--background);
+
+      text-align: center;
+
+      backdrop-filter: blur(12px);
+
+      pointer-events: auto;
+    }
+
+
+    #home-title {
+      margin: 0 0 8px;
+
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+
+    #home-subtitle {
+      margin: 0 0 30px;
+
+      color: var(--text-secondary);
+
+      font-size: 14px;
+    }
+
+
+    /* ==================================================
+       HAUPTMENÜ BUTTONS
+       ================================================== */
+
+    .home-button {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      width: 100%;
+
+      min-height: 54px;
+
+      margin-top: 12px;
+
+      border: 1px solid var(--border);
+
+      border-radius: 9px;
+
+      background: rgba(255, 255, 255, 0.05);
+
+      color: var(--text);
+
+      font-size: 15px;
+      font-weight: bold;
+
+      cursor: pointer;
+    }
+
+
+    .home-button:hover {
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+
+    .home-button.primary {
+      background: rgba(53, 208, 111, 0.12);
+
+      border-color: rgba(53, 208, 111, 0.5);
+    }
+
+
+    /* ==================================================
+       HAUPTMENÜ DATUM / UHRZEIT
+       ================================================== */
+
+    #home-datetime {
+      margin-top: 25px;
+
+      color: var(--text-secondary);
+
+      font-size: 13px;
+
+      line-height: 1.7;
+    }
+
+
+    #home-time {
+      color: var(--text);
+
+      font-size: 22px;
+
+      font-weight: bold;
+    }
+
 
     /* ==================================================
        SEITENMENÜ
@@ -128,69 +309,86 @@
 
     #side-menu {
       position: absolute;
+
       top: 0;
       left: 0;
 
       width: var(--menu-width);
       height: 100%;
 
-      padding: 24px 18px;
+      padding: 22px 18px;
 
       background: var(--background);
 
       border-right: 1px solid var(--border);
 
       transform: translateX(-100%);
-      transition: transform 0.25s ease;
+
+      transition:
+        transform 0.25s ease;
 
       pointer-events: auto;
 
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
     }
+
 
     #side-menu.open {
       transform: translateX(0);
     }
 
-    .menu-header {
+
+    #menu-header {
       display: flex;
-      justify-content: space-between;
+
       align-items: center;
+
+      justify-content: space-between;
 
       margin-bottom: 30px;
     }
 
-    .menu-title {
+
+    #menu-title {
       font-size: 20px;
+
       font-weight: bold;
     }
 
+
     #close-menu {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
 
       border: 0;
-      border-radius: 6px;
+
+      border-radius: 7px;
 
       background: transparent;
 
       color: var(--text);
-      font-size: 22px;
+
+      font-size: 24px;
 
       cursor: pointer;
     }
 
+
     .menu-item {
       display: flex;
+
       align-items: center;
+
       gap: 12px;
 
       width: 100%;
 
       padding: 14px 12px;
+
       margin-bottom: 6px;
 
       border: 0;
+
       border-radius: 7px;
 
       background: transparent;
@@ -198,96 +396,73 @@
       color: var(--text);
 
       text-align: left;
+
       font-size: 15px;
 
       cursor: pointer;
     }
+
 
     .menu-item:hover {
       background: rgba(255, 255, 255, 0.08);
     }
 
+
     .menu-icon {
       width: 24px;
+
       text-align: center;
+
       font-size: 18px;
     }
 
+
     .menu-divider {
       height: 1px;
+
       margin: 18px 0;
 
       background: var(--border);
     }
 
-    .menu-information {
+
+    #menu-system-information {
       padding: 10px 12px;
 
       color: var(--text-secondary);
 
       font-size: 13px;
+
       line-height: 1.6;
     }
 
-    /* ==================================================
-       HOME
-       ================================================== */
-
-    #home-panel {
-      position: absolute;
-
-      left: 50%;
-      bottom: 30px;
-
-      transform: translateX(-50%);
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-
-      pointer-events: auto;
-    }
-
-    #scan-button {
-      padding: 14px 24px;
-
-      border: 1px solid var(--border);
-      border-radius: 8px;
-
-      background: var(--background);
-
-      color: var(--text);
-
-      font-size: 15px;
-      font-weight: bold;
-
-      cursor: pointer;
-
-      backdrop-filter: blur(8px);
-    }
 
     /* ==================================================
-       QR-SCANNER
+       QR SCANNER
        ================================================== */
 
     #qr-scanner {
       display: none;
 
       position: absolute;
+
       inset: 0;
 
-      background: rgba(0, 0, 0, 0.65);
+      background: rgba(0, 0, 0, 0.72);
 
       pointer-events: auto;
     }
+
 
     #qr-scanner.visible {
       display: block;
     }
 
+
     #qr-video {
       position: absolute;
+
+      inset: 0;
 
       width: 100%;
       height: 100%;
@@ -295,73 +470,50 @@
       object-fit: cover;
     }
 
+
     #qr-overlay {
       position: absolute;
+
       inset: 0;
 
       display: flex;
-      justify-content: center;
+
       align-items: center;
+
+      justify-content: center;
     }
 
-    #qr-frame {
-      position: relative;
 
+    #qr-frame {
       width: min(70vw, 300px);
+
       height: min(70vw, 300px);
 
       border: 3px solid white;
+
       border-radius: 18px;
 
       box-shadow:
         0 0 0 9999px rgba(0, 0, 0, 0.45);
     }
 
-    #qr-frame::before,
-    #qr-frame::after {
-      content: "";
-
-      position: absolute;
-
-      width: 35px;
-      height: 35px;
-
-      border-color: var(--green);
-      border-style: solid;
-    }
-
-    #qr-frame::before {
-      top: -3px;
-      left: -3px;
-
-      border-width: 5px 0 0 5px;
-
-      border-radius: 10px 0 0 0;
-    }
-
-    #qr-frame::after {
-      right: -3px;
-      bottom: -3px;
-
-      border-width: 0 5px 5px 0;
-
-      border-radius: 0 0 10px 0;
-    }
 
     #qr-instruction {
       position: absolute;
 
-      left: 50%;
       top: calc(50% + min(35vw, 150px) + 30px);
 
-      transform: translateX(-50%);
+      left: 50%;
 
       width: 90%;
+
+      transform: translateX(-50%);
 
       text-align: center;
 
       font-size: 15px;
     }
+
 
     #qr-close {
       position: absolute;
@@ -373,28 +525,31 @@
       height: 48px;
 
       border: 1px solid rgba(255, 255, 255, 0.4);
+
       border-radius: 50%;
 
       background: rgba(0, 0, 0, 0.6);
 
       color: white;
+
       font-size: 24px;
 
       cursor: pointer;
     }
 
+
     #qr-result {
       position: absolute;
 
       left: 50%;
-      bottom: 30px;
-
-      transform: translateX(-50%);
+      bottom: 25px;
 
       width: calc(100% - 40px);
       max-width: 500px;
 
-      padding: 14px;
+      transform: translateX(-50%);
+
+      padding: 12px;
 
       border-radius: 8px;
 
@@ -405,8 +560,9 @@
       font-size: 14px;
     }
 
+
     /* ==================================================
-       STATION
+       STATIONSANSICHT
        ================================================== */
 
     #station-container {
@@ -414,95 +570,128 @@
 
       position: absolute;
 
-      left: 50%;
       top: 50%;
-
-      transform: translate(-50%, -50%);
+      left: 50%;
 
       width: 310px;
 
+      transform: translate(-50%, -50%);
+
       pointer-events: auto;
     }
+
 
     #station-container.visible {
       display: block;
     }
 
+
+    /* ==================================================
+       VERBINDUNGSLINIE
+       ================================================== */
+
     #station-line {
       position: absolute;
 
-      left: 50%;
       top: 100%;
+      left: 50%;
 
       width: 2px;
       height: 120px;
 
       background: rgba(255, 255, 255, 0.75);
+
+      pointer-events: none;
     }
+
+
+    /* ==================================================
+       STATIONSFENSTER
+       ================================================== */
 
     #station-window {
       overflow: hidden;
 
       border: 1px solid var(--border);
+
       border-radius: 10px;
 
       background: var(--background);
 
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.4);
 
       backdrop-filter: blur(10px);
     }
 
-    .station-header {
+
+    #station-header {
       display: flex;
-      justify-content: space-between;
+
       align-items: center;
+
+      justify-content: space-between;
 
       padding: 14px 16px;
 
       border-bottom: 1px solid var(--border);
     }
 
-    .station-name {
+
+    #station-name {
       font-size: 17px;
+
       font-weight: bold;
     }
 
-    .station-status {
+
+    #station-status-button {
       display: flex;
+
       align-items: center;
 
       border: 0;
 
       background: transparent;
 
-      color: var(--text);
-
       cursor: pointer;
     }
 
-    .status-icon {
-      font-size: 25px;
+
+    #station-status-icon {
+      font-size: 26px;
     }
+
 
     .status-green {
       color: var(--green);
     }
 
+
     .status-yellow {
       color: var(--yellow);
     }
+
 
     .status-red {
       color: var(--red);
     }
 
-    .station-body {
+
+    /* ==================================================
+       SENSORWERTE
+       ================================================== */
+
+    #station-body {
       padding: 14px 16px;
     }
 
+
     .sensor-row {
       display: flex;
+
+      align-items: center;
+
       justify-content: space-between;
 
       padding: 9px 0;
@@ -512,17 +701,21 @@
       font-size: 14px;
     }
 
+
     .sensor-row:last-child {
       border-bottom: 0;
     }
+
 
     .sensor-name {
       color: var(--text-secondary);
     }
 
+
     .sensor-value {
       font-weight: bold;
     }
+
 
     /* ==================================================
        PROBLEME
@@ -542,98 +735,130 @@
       background: var(--background-light);
     }
 
+
     .problem-window.visible {
       display: block;
     }
+
 
     .problem-window.yellow {
       border: 1px solid var(--yellow);
     }
 
+
     .problem-window.red {
       border: 1px solid var(--red);
     }
+
 
     .problem-title {
       margin-bottom: 8px;
 
       font-size: 14px;
+
       font-weight: bold;
     }
+
 
     .problem-window.yellow .problem-title {
       color: var(--yellow);
     }
 
+
     .problem-window.red .problem-title {
       color: var(--red);
     }
 
+
     .problem-list {
       margin: 0;
+
       padding-left: 20px;
 
       color: var(--text-secondary);
 
       font-size: 13px;
+
       line-height: 1.7;
     }
+
+
+    /* ==================================================
+       RESPONSIVE
+       ================================================== */
 
     @media (max-width: 600px) {
 
       :root {
-        --menu-width: 240px;
+        --menu-width: 250px;
       }
 
-      #menu-button {
-        top: 12px;
-        left: 12px;
+
+      #top-bar {
+        padding: 12px;
       }
 
-      #connection-status {
-        top: 12px;
-        right: 12px;
+
+      #home-content {
+        padding: 24px;
       }
+
+
+      #home-title {
+        font-size: 24px;
+      }
+
 
       #station-container {
         width: calc(100vw - 40px);
+
         max-width: 310px;
       }
 
-      #home-panel {
-        bottom: 20px;
-      }
     }
+
   </style>
 </head>
+
 
 <body>
 
   <!-- ==================================================
-       AR
+       AR SZENE
        ================================================== -->
 
   <a-scene
     vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true"
+
+    renderer="
+      logarithmicDepthBuffer: true;
+    "
+
     embedded
+
     arjs="
       sourceType: webcam;
       facingMode: environment;
+
       sourceWidth: 1280;
       sourceHeight: 720;
+
       displayWidth: 1280;
       displayHeight: 720;
+
       debugUIEnabled: false;
     "
   >
 
+    <!-- Hiro Marker -->
     <a-marker
       preset="hiro"
       id="hiro-marker"
     >
     </a-marker>
 
+
+    <!-- Kamera -->
     <a-entity camera></a-entity>
 
   </a-scene>
@@ -645,62 +870,183 @@
 
   <div id="app">
 
-    <button id="menu-button">
-      ☰
-    </button>
+
+    <!-- ==================================================
+         OBERER BEREICH
+         ================================================== -->
+
+    <div id="top-bar">
+
+      <button
+        id="menu-button"
+        aria-label="Menü öffnen"
+      >
+        ☰
+      </button>
 
 
-    <div id="connection-status">
-      <span id="connection-indicator"></span>
-      <span>Server verbunden</span>
+      <div id="connection-status">
+
+        <span id="connection-indicator"></span>
+
+        <span id="connection-text">
+          Server verbunden
+        </span>
+
+      </div>
+
     </div>
 
 
     <!-- ==================================================
-         MENÜ
+         HAUPTMENÜ / HOME
+         ================================================== -->
+
+    <main id="home-screen">
+
+      <div id="home-content">
+
+        <h1 id="home-title">
+          Industrie 4.0
+        </h1>
+
+
+        <p id="home-subtitle">
+          Augmented-Reality-System
+        </p>
+
+
+        <!-- QR-Code -->
+        <button
+          id="scan-button"
+          class="home-button primary"
+        >
+          QR-Code scannen
+        </button>
+
+
+        <!-- Station -->
+        <button
+          id="station-button"
+          class="home-button"
+        >
+          Station anzeigen
+        </button>
+
+
+        <!-- Datum / Uhrzeit -->
+        <div id="home-datetime">
+
+          <div id="home-time">
+            --:--:--
+          </div>
+
+          <div id="home-date">
+            --.--.----
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+
+    <!-- ==================================================
+         SEITENMENÜ
          ================================================== -->
 
     <aside id="side-menu">
 
-      <div class="menu-header">
+      <div id="menu-header">
 
-        <div class="menu-title">
+        <div id="menu-title">
           Menü
         </div>
 
-        <button id="close-menu">
+
+        <button
+          id="close-menu"
+          aria-label="Menü schließen"
+        >
           ×
         </button>
 
       </div>
 
 
-      <button class="menu-item" id="home-menu-item">
-        <span class="menu-icon">⌂</span>
-        <span>Home</span>
+      <!-- Home -->
+      <button
+        id="home-menu-item"
+        class="menu-item"
+      >
+
+        <span class="menu-icon">
+          ⌂
+        </span>
+
+        <span>
+          Home
+        </span>
+
       </button>
 
 
-      <button class="menu-item" id="server-menu-item">
-        <span class="menu-icon">●</span>
-        <span>Serverstatus</span>
+      <!-- QR-Code -->
+      <button
+        id="qr-menu-item"
+        class="menu-item"
+      >
+
+        <span class="menu-icon">
+          ▣
+        </span>
+
+        <span>
+          QR-Code scannen
+        </span>
+
+      </button>
+
+
+      <!-- Server -->
+      <button
+        id="server-menu-item"
+        class="menu-item"
+      >
+
+        <span class="menu-icon">
+          ●
+        </span>
+
+        <span>
+          Serverstatus
+        </span>
+
       </button>
 
 
       <div class="menu-divider"></div>
 
 
-      <div class="menu-information">
+      <!-- Systeminformationen -->
+      <div id="menu-system-information">
 
-        <strong>Uhrzeit</strong>
+        <strong>
+          Uhrzeit
+        </strong>
 
         <div id="menu-time">
           --:--:--
         </div>
 
+
         <br>
 
-        <strong>Datum</strong>
+
+        <strong>
+          Datum
+        </strong>
 
         <div id="menu-date">
           --.--.----
@@ -712,23 +1058,10 @@
 
 
     <!-- ==================================================
-         HOME
+         QR SCANNER
          ================================================== -->
 
-    <div id="home-panel">
-
-      <button id="scan-button">
-        QR-Code scannen
-      </button>
-
-    </div>
-
-
-    <!-- ==================================================
-         QR-SCANNER
-         ================================================== -->
-
-    <div id="qr-scanner">
+    <section id="qr-scanner">
 
       <video
         id="qr-video"
@@ -749,7 +1082,10 @@
       </div>
 
 
-      <button id="qr-close">
+      <button
+        id="qr-close"
+        aria-label="QR-Scanner schließen"
+      >
         ×
       </button>
 
@@ -758,47 +1094,54 @@
         Suche nach QR-Code …
       </div>
 
-    </div>
+    </section>
 
 
     <!-- ==================================================
          STATION
          ================================================== -->
 
-    <div id="station-container">
+    <section id="station-container">
 
+      <!-- Linie zur Station -->
       <div id="station-line"></div>
 
 
+      <!-- Hauptfenster -->
       <div id="station-window">
 
-        <div class="station-header">
 
-          <div class="station-name">
+        <!-- Kopfzeile -->
+        <header id="station-header">
+
+          <div id="station-name">
             Station 01
           </div>
 
 
           <button
-            class="station-status"
             id="station-status-button"
+            aria-label="Stationsstatus anzeigen"
           >
 
             <span
-              class="status-icon status-yellow"
               id="station-status-icon"
+              class="status-yellow"
             >
               ⚠
             </span>
 
           </button>
 
-        </div>
+        </header>
 
 
-        <div class="station-body">
+        <!-- Sensordaten -->
+        <div id="station-body">
+
 
           <div class="sensor-row">
+
             <span class="sensor-name">
               Temperatur
             </span>
@@ -806,10 +1149,12 @@
             <span class="sensor-value">
               42,7 °C
             </span>
+
           </div>
 
 
           <div class="sensor-row">
+
             <span class="sensor-name">
               Druck
             </span>
@@ -817,10 +1162,12 @@
             <span class="sensor-value">
               5,2 bar
             </span>
+
           </div>
 
 
           <div class="sensor-row">
+
             <span class="sensor-name">
               Drehzahl
             </span>
@@ -828,10 +1175,12 @@
             <span class="sensor-value">
               1.420 rpm
             </span>
+
           </div>
 
 
           <div class="sensor-row">
+
             <span class="sensor-name">
               Vibration
             </span>
@@ -839,21 +1188,28 @@
             <span class="sensor-value">
               2,4 mm/s
             </span>
+
           </div>
+
 
         </div>
 
       </div>
 
 
+      <!-- ==================================================
+           GERINGERE PROBLEME
+           ================================================== -->
+
       <div
-        class="problem-window yellow"
         id="yellow-problems"
+        class="problem-window yellow"
       >
 
         <div class="problem-title">
           ⚠ Geringere Probleme
         </div>
+
 
         <ul class="problem-list">
 
@@ -870,14 +1226,19 @@
       </div>
 
 
+      <!-- ==================================================
+           ERHEBLICHE PROBLEME
+           ================================================== -->
+
       <div
-        class="problem-window red"
         id="red-problems"
+        class="problem-window red"
       >
 
         <div class="problem-title">
           ⚠ Erhebliche Probleme
         </div>
+
 
         <ul class="problem-list">
 
@@ -893,10 +1254,14 @@
 
       </div>
 
-    </div>
+    </section>
 
   </div>
 
+
+  <!-- ==================================================
+       JAVASCRIPT
+       ================================================== -->
 
   <script>
 
@@ -905,116 +1270,290 @@
        ================================================== */
 
     const hiroMarker =
-      document.getElementById('hiro-marker');
+      document.getElementById(
+        'hiro-marker'
+      );
+
+
+    const homeScreen =
+      document.getElementById(
+        'home-screen'
+      );
+
 
     const menuButton =
-      document.getElementById('menu-button');
+      document.getElementById(
+        'menu-button'
+      );
+
 
     const closeMenuButton =
-      document.getElementById('close-menu');
+      document.getElementById(
+        'close-menu'
+      );
+
 
     const sideMenu =
-      document.getElementById('side-menu');
+      document.getElementById(
+        'side-menu'
+      );
+
 
     const homeMenuItem =
-      document.getElementById('home-menu-item');
+      document.getElementById(
+        'home-menu-item'
+      );
+
+
+    const qrMenuItem =
+      document.getElementById(
+        'qr-menu-item'
+      );
+
 
     const serverMenuItem =
-      document.getElementById('server-menu-item');
+      document.getElementById(
+        'server-menu-item'
+      );
+
 
     const scanButton =
-      document.getElementById('scan-button');
+      document.getElementById(
+        'scan-button'
+      );
+
+
+    const stationButton =
+      document.getElementById(
+        'station-button'
+      );
+
 
     const qrScanner =
-      document.getElementById('qr-scanner');
+      document.getElementById(
+        'qr-scanner'
+      );
+
 
     const qrVideo =
-      document.getElementById('qr-video');
+      document.getElementById(
+        'qr-video'
+      );
+
 
     const qrClose =
-      document.getElementById('qr-close');
+      document.getElementById(
+        'qr-close'
+      );
+
 
     const qrResult =
-      document.getElementById('qr-result');
+      document.getElementById(
+        'qr-result'
+      );
+
 
     const stationContainer =
-      document.getElementById('station-container');
+      document.getElementById(
+        'station-container'
+      );
+
 
     const stationStatusButton =
-      document.getElementById('station-status-button');
+      document.getElementById(
+        'station-status-button'
+      );
+
 
     const yellowProblems =
-      document.getElementById('yellow-problems');
+      document.getElementById(
+        'yellow-problems'
+      );
+
 
     const redProblems =
-      document.getElementById('red-problems');
+      document.getElementById(
+        'red-problems'
+      );
+
+
+    const homeTime =
+      document.getElementById(
+        'home-time'
+      );
+
+
+    const homeDate =
+      document.getElementById(
+        'home-date'
+      );
+
 
     const menuTime =
-      document.getElementById('menu-time');
+      document.getElementById(
+        'menu-time'
+      );
+
 
     const menuDate =
-      document.getElementById('menu-date');
+      document.getElementById(
+        'menu-date'
+      );
+
+
+    /* ==================================================
+       NAVIGATION
+       ================================================== */
+
+    function showHome() {
+
+      homeScreen.style.display =
+        'flex';
+
+      stationContainer.classList.remove(
+        'visible'
+      );
+
+      yellowProblems.classList.remove(
+        'visible'
+      );
+
+      redProblems.classList.remove(
+        'visible'
+      );
+
+    }
+
+
+    function showStation() {
+
+      homeScreen.style.display =
+        'none';
+
+      stationContainer.classList.add(
+        'visible'
+      );
+
+    }
 
 
     /* ==================================================
        SEITENMENÜ
        ================================================== */
 
-    menuButton.addEventListener('click', () => {
-      sideMenu.classList.add('open');
-    });
+    menuButton.addEventListener(
+      'click',
+      () => {
+
+        sideMenu.classList.add(
+          'open'
+        );
+
+      }
+    );
 
 
-    closeMenuButton.addEventListener('click', () => {
-      sideMenu.classList.remove('open');
-    });
+    closeMenuButton.addEventListener(
+      'click',
+      () => {
+
+        sideMenu.classList.remove(
+          'open'
+        );
+
+      }
+    );
 
 
-    homeMenuItem.addEventListener('click', () => {
-      sideMenu.classList.remove('open');
-      stopQrScanner();
-    });
+    homeMenuItem.addEventListener(
+      'click',
+      () => {
+
+        sideMenu.classList.remove(
+          'open'
+        );
+
+        showHome();
+
+      }
+    );
 
 
-    serverMenuItem.addEventListener('click', () => {
+    qrMenuItem.addEventListener(
+      'click',
+      async () => {
 
-      sideMenu.classList.remove('open');
+        sideMenu.classList.remove(
+          'open'
+        );
 
-      alert('Server verbunden');
+        await startQrScanner();
 
-    });
+      }
+    );
+
+
+    serverMenuItem.addEventListener(
+      'click',
+      () => {
+
+        sideMenu.classList.remove(
+          'open'
+        );
+
+        alert(
+          'Server verbunden'
+        );
+
+      }
+    );
 
 
     /* ==================================================
-       QR-CODE SCANNER
+       HAUPTMENÜ
+       ================================================== */
+
+    scanButton.addEventListener(
+      'click',
+      async () => {
+
+        await startQrScanner();
+
+      }
+    );
+
+
+    stationButton.addEventListener(
+      'click',
+      () => {
+
+        showStation();
+
+      }
+    );
+
+
+    /* ==================================================
+       QR SCANNER
        ================================================== */
 
     let qrStream = null;
+
     let qrScanning = false;
-
-
-    scanButton.addEventListener('click', async () => {
-
-      await startQrScanner();
-
-    });
-
-
-    qrClose.addEventListener('click', () => {
-
-      stopQrScanner();
-
-    });
 
 
     async function startQrScanner() {
 
-      if (!('BarcodeDetector' in window)) {
+      if (
+        !('BarcodeDetector' in window)
+      ) {
 
         qrResult.textContent =
           'Dieser Browser unterstützt die QR-Code-Erkennung nicht.';
 
-        qrScanner.classList.add('visible');
+        qrScanner.classList.add(
+          'visible'
+        );
 
         return;
 
@@ -1024,21 +1563,30 @@
       try {
 
         qrStream =
-          await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: {
-                ideal: 'environment'
-              }
-            },
-            audio: false
-          });
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: {
+                facingMode: {
+                  ideal: 'environment'
+                }
+              },
+
+              audio: false
+            }
+          );
 
 
-        qrVideo.srcObject = qrStream;
+        qrVideo.srcObject =
+          qrStream;
 
-        qrScanner.classList.add('visible');
+
+        qrScanner.classList.add(
+          'visible'
+        );
+
 
         qrScanning = true;
+
 
         qrResult.textContent =
           'Suche nach QR-Code …';
@@ -1046,14 +1594,21 @@
 
         scanQrCode();
 
-      } catch (error) {
+      }
+      catch (error) {
 
-        console.error(error);
+        console.error(
+          error
+        );
+
 
         qrResult.textContent =
           'Kamerazugriff wurde verweigert oder ist nicht verfügbar.';
 
-        qrScanner.classList.add('visible');
+
+        qrScanner.classList.add(
+          'visible'
+        );
 
       }
 
@@ -1069,18 +1624,34 @@
 
         qrStream
           .getTracks()
-          .forEach(track => track.stop());
+          .forEach(
+            track => track.stop()
+          );
 
         qrStream = null;
 
       }
 
 
-      qrVideo.srcObject = null;
+      qrVideo.srcObject =
+        null;
 
-      qrScanner.classList.remove('visible');
+
+      qrScanner.classList.remove(
+        'visible'
+      );
 
     }
+
+
+    qrClose.addEventListener(
+      'click',
+      () => {
+
+        stopQrScanner();
+
+      }
+    );
 
 
     async function scanQrCode() {
@@ -1093,46 +1664,63 @@
       try {
 
         const detector =
-          new BarcodeDetector({
-            formats: ['qr_code']
-          });
+          new BarcodeDetector(
+            {
+              formats: [
+                'qr_code'
+              ]
+            }
+          );
 
 
         const barcodes =
-          await detector.detect(qrVideo);
+          await detector.detect(
+            qrVideo
+          );
 
 
-        if (barcodes.length > 0) {
+        if (
+          barcodes.length > 0
+        ) {
 
-          const qrValue =
+          const value =
             barcodes[0].rawValue;
 
-          handleQrCode(qrValue);
+
+          handleQrCode(
+            value
+          );
+
 
           return;
 
         }
 
-      } catch (error) {
+      }
+      catch (error) {
 
         console.error(
-          'QR-Code konnte nicht erkannt werden:',
+          'QR-Code-Erkennung:',
           error
         );
 
       }
 
 
-      requestAnimationFrame(scanQrCode);
+      requestAnimationFrame(
+        scanQrCode
+      );
 
     }
 
 
     /* ==================================================
-       QR-CODE AUSWERTEN
+       QR CODE AUSWERTEN
        ================================================== */
 
-    function handleQrCode(value) {
+    function handleQrCode(
+      value
+    ) {
 
       console.debug(
         'QR-Code erkannt:',
@@ -1140,22 +1728,18 @@
       );
 
 
-      qrResult.textContent =
-        `QR-Code erkannt: ${value}`;
-
-
       stopQrScanner();
 
 
       /*
-       * Aktuell wird unabhängig vom QR-Inhalt
-       * die Mockup-Station angezeigt.
+       * Aktuell wird nach einem erfolgreichen
+       * Scan die Beispielstation angezeigt.
        *
-       * Später können wir hier den Inhalt des QR-Codes
-       * auswerten und die entsprechende Station laden.
+       * Hier können später die Daten aus dem
+       * QR-Code verarbeitet werden.
        */
 
-      stationContainer.classList.add('visible');
+      showStation();
 
     }
 
@@ -1169,12 +1753,11 @@
       () => {
 
         console.debug(
-          'Marker found'
+          'Marker gefunden'
         );
 
-        stationContainer.classList.add(
-          'visible'
-        );
+
+        showStation();
 
       }
     );
@@ -1185,19 +1768,7 @@
       () => {
 
         console.debug(
-          'Marker lost'
-        );
-
-        stationContainer.classList.remove(
-          'visible'
-        );
-
-        yellowProblems.classList.remove(
-          'visible'
-        );
-
-        redProblems.classList.remove(
-          'visible'
+          'Marker verloren'
         );
 
       }
@@ -1205,7 +1776,7 @@
 
 
     /* ==================================================
-       PROBLEME
+       STATIONSSTATUS
        ================================================== */
 
     stationStatusButton.addEventListener(
@@ -1215,6 +1786,7 @@
         yellowProblems.classList.toggle(
           'visible'
         );
+
 
         redProblems.classList.toggle(
           'visible'
@@ -1230,10 +1802,11 @@
 
     function updateDateTime() {
 
-      const now = new Date();
+      const now =
+        new Date();
 
 
-      menuTime.textContent =
+      const time =
         now.toLocaleTimeString(
           'de-DE',
           {
@@ -1244,7 +1817,7 @@
         );
 
 
-      menuDate.textContent =
+      const date =
         now.toLocaleDateString(
           'de-DE',
           {
@@ -1254,10 +1827,27 @@
           }
         );
 
+
+      homeTime.textContent =
+        time;
+
+
+      homeDate.textContent =
+        date;
+
+
+      menuTime.textContent =
+        time;
+
+
+      menuDate.textContent =
+        date;
+
     }
 
 
     updateDateTime();
+
 
     setInterval(
       updateDateTime,
@@ -1266,28 +1856,36 @@
 
 
     /* ==================================================
-       DEBUG
+       DEBUG-FUNKTIONEN
        ================================================== */
 
-    window.fireEventMarkerFound = () => {
+    window.fireEventMarkerFound =
+      () => {
 
-      hiroMarker.dispatchEvent(
-        new CustomEvent('markerFound')
-      );
+        hiroMarker.dispatchEvent(
+          new CustomEvent(
+            'markerFound'
+          )
+        );
 
-    };
+      };
 
 
-    window.fireEventMarkerLost = () => {
+    window.fireEventMarkerLost =
+      () => {
 
-      hiroMarker.dispatchEvent(
-        new CustomEvent('markerLost')
-      );
+        hiroMarker.dispatchEvent(
+          new CustomEvent(
+            'markerLost'
+          )
+        );
 
-    };
+      };
+
 
   </script>
 
 </body>
+
 </html>
 ```
