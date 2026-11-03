@@ -45,10 +45,10 @@ flowchart LR
 | Nr. | Aufgabe | Wo | Ohne Pi testbar |
 |---|---|---|---|
 | 1 | OPC UA lesen, Debug-Ausgabe | Flow: `Milo` → `Vibration (Aufgabe 1)` | nein, Flow auf dem Pi |
-| 2 | WebSocket + Anzeige | Flow: `websocket out`, App: Panel „Aktueller Wert“ | App ja, mit Mock |
+| 2 | WebSocket + Anzeige | Flow: `websocket out`, App: Technik-Ansicht „Aktueller Wert“ | App ja, mit Mock |
 | 3 | MQTT publish | Flow: `HiveMQ publish` | nein |
-| 3.1 | Fremde Topics | App: Tabelle „Andere Kisten“, Flow: Debug `/bbk-lf7/#` | ja, live |
-| 4 | MQTT in der App als Text | App: Panel „MQTT-Nachricht als Text“ | ja, live |
+| 3.1 | Fremde Topics | App: Technik-Ansicht „Andere Kisten auf dem Broker“, Flow: Debug `/bbk-lf7/#` | ja, live |
+| 4 | MQTT in der App als Text | App: Technik-Ansicht „MQTT-Nachricht im Klartext“ | ja, live |
 | 5 | Datenbank + Ø 5 min | Flow: SQLite + `GET /api/vibration/avg5min` | nein |
 | 7 | Daten der letzten 5 min | Flow: `GET /api/vibration/last5min` | nein |
 | 8 | Verlauf als Chart | App: Chart.js | App ja, mit Mock |

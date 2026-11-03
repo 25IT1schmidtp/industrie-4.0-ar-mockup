@@ -1,12 +1,15 @@
 /* ==================================================
-   LIVE-DATEN: MQTT, WEBSOCKET, REST, CHART
+   LIVE-DATEN: MQTT, WEBSOCKET, REST, DEMO
    --------------------------------------------------
    MQTT       direkt vom Browser zum HiveMQ-Broker (WSS),
               braucht den Raspberry Pi nicht.
    WebSocket  Node-RED auf dem Pi (z. B. per localhost.run).
    REST       Node-RED + Datenbank (Verlauf, Durchschnitt).
-   Fehlt eine Quelle, bleibt die App mit Demo-/Browserdaten
-   benutzbar.
+   Demo       simulierte Werte, solange keine echte Quelle
+              liefert (z. B. ohne WLAN bei der Vorführung).
+
+   Die Oberfläche (ui.js) liest nur LiveData.snapshot() und
+   reagiert auf das Ereignis "update".
    ================================================== */
 
 (() => {
@@ -17,6 +20,7 @@
   const TOPIC_PATTERN = /^\/bbk-lf7\/([^/]+)\/power-house\/vibration$/;
   const HISTORY_MS = 5 * 60 * 1000;
   const STALE_MS = 10 * 1000;
+  const DEMO_DELAY_MS = 8 * 1000;
   const REST_TIMEOUT_MS = 4000;
   const DEFAULT_LIMITS = { high: 4.5, highHigh: 7.1 };
   const STORAGE_KEY = 'ar-mockup-live-config';
@@ -53,18 +57,25 @@
       }
     }
 
+    /* automatisch gewählte Kiste (siehe autoPickCrate), nie gespeichert */
+    config.auto = false;
+
     return config;
   }
 
   function saveConfig() {
+    const { auto, ...persistent } = config;
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistent));
     } catch (error) {
       /* Speicher gesperrt: Konfiguration gilt nur bis zum Reload */
     }
   }
 
   const config = loadConfig();
+  const startedAt = Date.now();
+  const listeners = [];
 
   const state = {
     conn: {
@@ -72,19 +83,26 @@
       ws: { state: 'off', text: 'nicht konfiguriert' },
       api: { state: 'off', text: 'nicht konfiguriert' }
     },
-    last: { mqtt: null, ws: null },
+    last: { mqtt: null, ws: null, demo: null },
     buffer: [],
     foreign: new Map(),
     history: { points: [], source: 'local', avg: null, count: 0 }
   };
-
-  const demoText = $('vibration-value').textContent.trim();
 
   let mqttClient = null;
   let socket = null;
   let socketTimer = null;
   let chart = null;
   let lastDraw = 0;
+  let demoStep = 0;
+
+  /* ==================================================
+     EREIGNISSE
+     ================================================== */
+
+  function emit() {
+    for (const listener of listeners) listener();
+  }
 
   /* ==================================================
      HILFSFUNKTIONEN
@@ -176,7 +194,7 @@
     return null;
   }
 
-  function describeFormat(sample, text) {
+  function describeFormat(sample) {
     if (!sample) return 'nicht auswertbar';
     if (sample.keys.length === 0) return 'Klartext-Zahl';
 
@@ -187,103 +205,168 @@
      NEUER MESSWERT
      ================================================== */
 
+  const isFresh = (sample, now) => Boolean(sample) && now - sample.recv < STALE_MS;
+
   function onSample(source, sample) {
     const now = Date.now();
     const wsFresh = state.last.ws && now - state.last.ws.recv < STALE_MS / 2;
 
     state.last[source] = { ...sample, recv: now };
 
+    /* echte Werte verdrängen die Demo-Werte im Verlauf */
+    if (source !== 'demo') {
+      state.buffer = state.buffer.filter((point) => !point.demo);
+    }
+
     /* WebSocket und MQTT liefern denselben Wert: nur einmal puffern */
-    if (source === 'ws' || !wsFresh) {
+    if (source !== 'mqtt' || !wsFresh) {
       const ts = Math.abs(sample.ts - now) < 30000 ? sample.ts : now;
 
-      state.buffer.push({ ts, value: sample.value });
+      state.buffer.push({ ts, value: sample.value, demo: source === 'demo' });
     }
 
     state.buffer = state.buffer.filter((point) => now - point.ts <= HISTORY_MS);
 
     renderLive();
+    emit();
 
     if (isPanelOpen() && state.history.source === 'local' && now - lastDraw > 1000) {
       drawHistory();
     }
   }
 
+  const VIA = { mqtt: 'MQTT', ws: 'WebSocket', demo: 'Demo' };
+
   function latestSample() {
-    const { mqtt, ws } = state.last;
+    let best = null;
 
-    if (mqtt && ws) return mqtt.recv > ws.recv ? { ...mqtt, via: 'MQTT' } : { ...ws, via: 'WebSocket' };
-    if (mqtt) return { ...mqtt, via: 'MQTT' };
-    if (ws) return { ...ws, via: 'WebSocket' };
+    for (const source of ['mqtt', 'ws', 'demo']) {
+      const sample = state.last[source];
 
-    return null;
+      if (sample && (!best || sample.recv > best.recv)) {
+        best = { ...sample, via: VIA[source], demo: source === 'demo' };
+      }
+    }
+
+    return best;
   }
 
   /* ==================================================
-     ANZEIGE: STATION, TOP-BAR, PANEL
+     DEMO-DATEN
+     Langsamer Zyklus (90 s) mit Warn- und Alarmphase,
+     damit sich bei der Vorführung die Ampel zeigen lässt.
      ================================================== */
 
-  function setLevelClass(element, level, prefix) {
-    element.classList.remove(`${prefix}ok`, `${prefix}warn`, `${prefix}alarm`);
+  function demoWanted() {
+    const now = Date.now();
 
-    if (level) element.classList.add(`${prefix}${level}`);
+    return now - startedAt > DEMO_DELAY_MS
+      && !isFresh(state.last.mqtt, now)
+      && !isFresh(state.last.ws, now);
+  }
+
+  function demoTick() {
+    if (!demoWanted()) return;
+
+    demoStep += 1;
+
+    const phase = demoStep % 90;
+    const bump = phase >= 40 && phase <= 80
+      ? 5.4 * Math.sin(((phase - 40) / 40) * Math.PI)
+      : 0;
+    const value = 2 + 0.2 * Math.sin(demoStep / 5) + (Math.random() - 0.5) * 0.12 + bump;
+
+    onSample('demo', {
+      value: Math.round(value * 100) / 100,
+      unit: 'mm/s',
+      ts: Date.now(),
+      limits: null,
+      keys: []
+    });
+  }
+
+  /* ==================================================
+     ZUSAMMENFASSUNG FÜR DIE OBERFLÄCHE
+     ================================================== */
+
+  function summary() {
+    const sample = latestSample();
+    const now = Date.now();
+    const fresh = isFresh(sample, now);
+    const connected = state.conn.mqtt.state === 'ok' || state.conn.ws.state === 'ok';
+
+    if (fresh && !sample.demo) {
+      return { state: 'live', text: `Live · ${sample.via}` };
+    }
+
+    if (fresh && sample.demo) {
+      return { state: 'demo', text: 'Demo-Daten' };
+    }
+
+    if (connected) {
+      return { state: 'wait', text: config.kiste ? 'Warte auf Daten' : 'Verbunden' };
+    }
+
+    if (state.conn.mqtt.state === 'connecting') {
+      return { state: 'wait', text: 'Verbinde …' };
+    }
+
+    return { state: 'off', text: 'Offline' };
+  }
+
+  function snapshot() {
+    const sample = latestSample();
+    const now = Date.now();
+    const fresh = isFresh(sample, now);
+
+    return {
+      sample: sample && {
+        ...sample,
+        age: now - sample.recv,
+        stale: !fresh,
+        level: fresh ? levelOf(sample.value, sample.limits) : null,
+        limits: sample.limits || DEFAULT_LIMITS,
+        unit: sample.unit || 'mm/s'
+      },
+      buffer: state.buffer.map((point) => ({ ...point })),
+      summary: summary(),
+      crate: config.kiste,
+      crateAuto: config.auto
+    };
+  }
+
+  /* ==================================================
+     ANZEIGE IM TECHNIK-PANEL
+     ================================================== */
+
+  function setLevelClass(element, level) {
+    element.classList.remove('lv-ok', 'lv-warn', 'lv-alarm');
+
+    if (level) element.classList.add(`lv-${level}`);
   }
 
   function renderLive() {
-    const sample = latestSample();
-    const stationValue = $('vibration-value');
-    const stationTag = $('vibration-tag');
+    const view = snapshot().sample;
     const bigValue = $('live-value');
     const meta = $('live-meta');
 
-    if (!sample) {
-      stationValue.textContent = demoText;
-      setLevelClass(stationValue, null, 'lv-');
-      stationTag.textContent = 'Demo';
-      stationTag.dataset.state = 'demo';
+    if (!view) {
       bigValue.textContent = '—';
-      setLevelClass(bigValue, null, 'lv-');
-      meta.textContent = config.kiste
-        ? `Warte auf Daten von Kiste ${config.kiste} …`
-        : 'Keine Kiste gewählt: Nummer eintragen oder unten „als Quelle“ klicken.';
+      setLevelClass(bigValue, null);
+      meta.textContent = 'Warte auf Daten …';
 
       return;
     }
 
-    const age = Date.now() - sample.recv;
-    const stale = age > STALE_MS;
-    const unit = sample.unit || 'mm/s';
-    const level = stale ? null : levelOf(sample.value, sample.limits);
-    const text = `${formatValue(sample.value)} ${unit}`;
+    bigValue.textContent = `${formatValue(view.value)} ${view.unit}`;
+    setLevelClass(bigValue, view.level);
 
-    stationValue.textContent = text;
-    setLevelClass(stationValue, level, 'lv-');
-    stationTag.textContent = stale ? 'veraltet' : 'Live';
-    stationTag.dataset.state = stale ? 'stale' : 'live';
+    const crate = config.kiste
+      ? `Kiste ${config.kiste}${config.auto ? ' (automatisch gewählt)' : ''} · `
+      : '';
 
-    bigValue.textContent = text;
-    setLevelClass(bigValue, level, 'lv-');
     meta.textContent =
-      `Kiste ${config.kiste} · via ${sample.via} · ${formatTime(sample.recv)} (vor ${Math.round(age / 1000)} s)`;
-  }
-
-  function renderSummary() {
-    const indicator = $('connection-indicator');
-    const text = $('connection-text');
-    const sample = latestSample();
-    const fresh = sample && Date.now() - sample.recv < STALE_MS;
-    const connected = state.conn.mqtt.state === 'ok' || state.conn.ws.state === 'ok';
-
-    if (fresh) {
-      indicator.dataset.state = 'live';
-      text.textContent = `Live · ${sample.via}`;
-    } else if (connected) {
-      indicator.dataset.state = 'wait';
-      text.textContent = config.kiste ? 'Verbunden · warte auf Daten' : 'Verbunden · Kiste wählen';
-    } else {
-      indicator.dataset.state = 'off';
-      text.textContent = 'Offline · Demodaten';
-    }
+      `${crate}via ${view.via} · ${formatTime(view.recv)} (vor ${Math.round(view.age / 1000)} s)`;
   }
 
   function setConn(name, connState, text) {
@@ -296,11 +379,11 @@
       row.querySelector('.conn-text').textContent = text;
     }
 
-    renderSummary();
+    emit();
   }
 
   /* ==================================================
-     MQTT (Aufgaben 3, 3.1, 4)
+     MQTT
      ================================================== */
 
   function connectMqtt() {
@@ -332,6 +415,28 @@
     mqttClient.on('message', (topic, payload) => handleMqtt(topic, payload.toString()));
   }
 
+  /*
+   * Ohne eingetragene Kiste nimmt die App die erste Kiste, die
+   * auswertbare Werte sendet. So zeigt die Vorführung sofort Daten.
+   * Die eigene Kiste lässt sich jederzeit im Technik-Panel setzen.
+   */
+  let firstMessageAt = 0;
+
+  function autoPickCrate(crate, sample) {
+    if (config.kiste || !sample) return;
+
+    /* 3 s sammeln, damit eine Kiste mit Einheit und Grenzwerten bevorzugt wird */
+    firstMessageAt ||= Date.now();
+
+    if (!sample.limits && Date.now() - firstMessageAt < 3000) return;
+
+    config.kiste = crate;
+    config.auto = true;
+
+    fillForm();
+    renderForeign();
+  }
+
   function handleMqtt(topic, text) {
     const match = TOPIC_PATTERN.exec(topic);
 
@@ -341,6 +446,7 @@
     const sample = parsePayload(text);
 
     trackForeign(crate, sample, text);
+    autoPickCrate(crate, sample);
 
     if (crate !== config.kiste) return;
 
@@ -365,7 +471,7 @@
   }
 
   /* ==================================================
-     FREMDE TOPICS (Aufgabe 3.1)
+     FREMDE TOPICS
      ================================================== */
 
   function trackForeign(crate, sample, text) {
@@ -375,7 +481,7 @@
     entry.arrivals.push(now);
     entry.arrivals = entry.arrivals.filter((t) => now - t <= 60000);
     entry.sample = sample;
-    entry.format = describeFormat(sample, text);
+    entry.format = describeFormat(sample);
     entry.bytes = new TextEncoder().encode(text).length;
     entry.lastSeen = now;
 
@@ -431,7 +537,7 @@
   }
 
   /* ==================================================
-     WEBSOCKET (Aufgabe 2)
+     WEBSOCKET
      ================================================== */
 
   function connectWebSocket() {
@@ -478,7 +584,7 @@
   }
 
   /* ==================================================
-     REST + VERLAUFS-CHART (Aufgaben 5, 7, 8)
+     REST + VERLAUFS-CHART
      ================================================== */
 
   async function getJson(path) {
@@ -581,15 +687,16 @@
     lastDraw = Date.now();
 
     const { points, source, avg, count } = state.history;
-    const limits = state.last.mqtt?.limits || state.last.ws?.limits || DEFAULT_LIMITS;
-    const unit = (latestSample() || {}).unit || 'mm/s';
+    const view = snapshot().sample;
+    const limits = view ? view.limits : DEFAULT_LIMITS;
+    const unit = view ? view.unit : 'mm/s';
 
     $('avg-value').textContent = avg === null
       ? 'Ø letzte 5 Minuten: noch keine Daten'
       : `Ø letzte 5 Minuten: ${formatValue(avg)} ${unit} (${count} Werte)`;
 
     $('history-source').textContent = source === 'rest'
-      ? 'Quelle: REST-Endpunkt /api/vibration/last5min und /avg5min (Datenbank auf dem Pi)'
+      ? 'Quelle: Datenbank auf dem Pi (REST)'
       : 'Quelle: Browser-Puffer (REST nicht erreichbar oder nicht konfiguriert)';
 
     const target = ensureChart();
@@ -614,6 +721,7 @@
 
   function openPanel() {
     $('data-panel').classList.add('visible');
+    document.body.classList.add('panel-open');
     fillForm();
     renderLive();
     renderForeign();
@@ -622,6 +730,7 @@
 
   function closePanel() {
     $('data-panel').classList.remove('visible');
+    document.body.classList.remove('panel-open');
   }
 
   function fillForm() {
@@ -633,20 +742,22 @@
       : `${TOPIC_ROOT}/<kistennummer>/power-house/vibration`;
   }
 
-  function setCrate(crate) {
-    if (crate === config.kiste) return;
+  function setCrate(crate, auto = false) {
+    if (crate === config.kiste && auto === config.auto) return;
 
     config.kiste = crate;
-    state.last = { mqtt: null, ws: null };
+    config.auto = auto;
+    state.last = { mqtt: null, ws: null, demo: null };
     state.buffer = [];
     $('mqtt-raw').textContent = 'Warte auf die nächste Nachricht …';
 
-    saveConfig();
+    if (!auto) saveConfig();
+
     fillForm();
     renderLive();
     renderForeign();
-    renderSummary();
     refreshHistory();
+    emit();
   }
 
   function applyForm(event) {
@@ -662,7 +773,7 @@
 
     const crate = cleanCrate($('cfg-kiste').value);
 
-    if (crate !== config.kiste) {
+    if (crate !== config.kiste || config.auto) {
       setCrate(crate);
     } else {
       fillForm();
@@ -677,7 +788,6 @@
   $('data-close').addEventListener('click', closePanel);
   $('cfg-form').addEventListener('submit', applyForm);
   $('history-refresh').addEventListener('click', refreshHistory);
-  $('connection-status').addEventListener('click', openPanel);
 
   $('foreign-body').addEventListener('click', (event) => {
     const crate = event.target.dataset?.crate;
@@ -686,8 +796,9 @@
   });
 
   setInterval(() => {
+    demoTick();
     renderLive();
-    renderSummary();
+    emit();
 
     if (isPanelOpen()) renderForeign();
   }, 1000);
@@ -698,14 +809,16 @@
 
   fillForm();
   renderLive();
-  renderSummary();
   connectMqtt();
   connectWebSocket();
 
-  /* Zugriff für die Seite und zum Testen in der Konsole */
+  /* Zugriff für die Oberfläche und zum Testen in der Konsole */
   window.LiveData = {
     open: openPanel,
     close: closePanel,
+    isOpen: isPanelOpen,
+    snapshot,
+    onUpdate: (listener) => listeners.push(listener),
     config,
     state,
     feedMqtt: handleMqtt
