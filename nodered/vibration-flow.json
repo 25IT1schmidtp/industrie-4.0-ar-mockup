@@ -1,0 +1,769 @@
+[
+  {
+    "id": "tab_vib",
+    "type": "tab",
+    "label": "Vibration P-101",
+    "disabled": false,
+    "info": "OPC UA (Milo) -> WebSocket, MQTT, SQLite, REST, Dashboard. Umgebungsvariable KISTE = eure Kistennummer (Tab-Einstellungen -> Umgebungsvariablen).",
+    "env": [
+      {
+        "name": "KISTE",
+        "value": "00",
+        "type": "str"
+      }
+    ]
+  },
+  {
+    "id": "ep1",
+    "type": "OpcUa-Endpoint",
+    "endpoint": "opc.tcp://milo.digitalpetri.com:62541/milo",
+    "secpol": "None",
+    "secmode": "NONE",
+    "none": true,
+    "login": false,
+    "usercert": false,
+    "usercertificate": "",
+    "userprivatekey": ""
+  },
+  {
+    "id": "mqttb",
+    "type": "mqtt-broker",
+    "name": "HiveMQ public",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "wsl",
+    "type": "websocket-listener",
+    "path": "/ws/vibration",
+    "wholemsg": "false"
+  },
+  {
+    "id": "db",
+    "type": "sqlitedb",
+    "db": "/home/pi/vibration.db",
+    "mode": "RWC"
+  },
+  {
+    "id": "c1",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 1: OPC UA Subscribe auf P-101 Vibration",
+    "info": "",
+    "x": 220,
+    "y": 30,
+    "wires": []
+  },
+  {
+    "id": "i_sub",
+    "type": "inject",
+    "z": "tab_vib",
+    "name": "Start",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 110,
+    "y": 80,
+    "wires": [
+      [
+        "item1"
+      ]
+    ]
+  },
+  {
+    "id": "item1",
+    "type": "OpcUa-Item",
+    "z": "tab_vib",
+    "item": "ns=2;s=Demo.Alarms.Plant.PowerHouse.P-101.Vibration",
+    "datatype": "Double",
+    "value": "",
+    "name": "P-101 Vibration",
+    "x": 290,
+    "y": 80,
+    "wires": [
+      [
+        "cli1"
+      ]
+    ]
+  },
+  {
+    "id": "cli1",
+    "type": "OpcUa-Client",
+    "z": "tab_vib",
+    "endpoint": "ep1",
+    "action": "subscribe",
+    "deadbandtype": "a",
+    "deadbandvalue": 1,
+    "time": 1,
+    "timeUnit": "s",
+    "certificate": "n",
+    "localfile": "",
+    "localkeyfile": "",
+    "securitymode": "None",
+    "securitypolicy": "None",
+    "useTransport": false,
+    "maxChunkCount": 1,
+    "maxMessageSize": 8192,
+    "receiveBufferSize": 8192,
+    "sendBufferSize": 8192,
+    "setstatusandtime": false,
+    "keepsessionalive": false,
+    "name": "Milo",
+    "x": 470,
+    "y": 80,
+    "wires": [
+      [
+        "dbg_raw",
+        "fmt"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_raw",
+    "type": "debug",
+    "z": "tab_vib",
+    "name": "Vibration (Aufgabe 1)",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "payload",
+    "statusType": "auto",
+    "x": 700,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "fmt",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Nachricht bauen",
+    "func": "// Die erste Nachricht nach dem Subscribe ist nur die Subscription-ID\nif (msg.topic === \"subscriptionId\") return null;\n\nconst value = Number(msg.payload);\nif (!Number.isFinite(value)) return null;\n\nmsg.payload = {\n  source: \"P-101 Vibration\",\n  nodeId: \"ns=2;s=Demo.Alarms.Plant.PowerHouse.P-101.Vibration\",\n  value: Math.round(value * 1000) / 1000,\n  unit: \"mm/s\",\n  timestamp: new Date().toISOString(),\n  limits: { high: 4.5, highHigh: 7.1 }\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "ws_out",
+        "mqtt_topic",
+        "db_ins",
+        "ui_gauge",
+        "ui_text"
+      ]
+    ],
+    "x": 700,
+    "y": 100
+  },
+  {
+    "id": "c2",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 2: WebSocket (Tunnel: ssh -R 80:localhost:1880 nokey@localhost.run)",
+    "info": "",
+    "x": 290,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "ws_out",
+    "type": "websocket out",
+    "z": "tab_vib",
+    "name": "ws://…/ws/vibration",
+    "server": "wsl",
+    "client": "",
+    "x": 960,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "mqtt_topic",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Topic setzen",
+    "func": "msg.topic = \"/bbk-lf7/\" + env.get(\"KISTE\") + \"/power-house/vibration\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 700,
+    "y": 160,
+    "wires": [
+      [
+        "mqtt_out"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out",
+    "type": "mqtt out",
+    "z": "tab_vib",
+    "name": "HiveMQ publish",
+    "topic": "",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqttb",
+    "x": 940,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "c3",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 3.1: fremde Topics mithören (Debug standardmäßig aus)",
+    "info": "",
+    "x": 250,
+    "y": 230,
+    "wires": []
+  },
+  {
+    "id": "mqtt_in",
+    "type": "mqtt in",
+    "z": "tab_vib",
+    "name": "/bbk-lf7/#",
+    "topic": "/bbk-lf7/#",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "mqttb",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 130,
+    "y": 270,
+    "wires": [
+      [
+        "dbg_foreign"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_foreign",
+    "type": "debug",
+    "z": "tab_vib",
+    "name": "Fremde Topics",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 340,
+    "y": 270,
+    "wires": []
+  },
+  {
+    "id": "c5",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 5: Datenbank (Schema siehe docs/schema.sql)",
+    "info": "",
+    "x": 250,
+    "y": 320,
+    "wires": []
+  },
+  {
+    "id": "i_db",
+    "type": "inject",
+    "z": "tab_vib",
+    "name": "Schema anlegen",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "0.5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 130,
+    "y": 360,
+    "wires": [
+      [
+        "db_schema"
+      ]
+    ]
+  },
+  {
+    "id": "db_schema",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Schema",
+    "func": "const sql = [\n  \"CREATE TABLE IF NOT EXISTS sensor (\\n  id      INTEGER PRIMARY KEY,\\n  node_id TEXT    NOT NULL UNIQUE,   -- OPC-UA-NodeId\\n  name    TEXT    NOT NULL,\\n  unit    TEXT    NOT NULL\\n);\",\n  \"CREATE TABLE IF NOT EXISTS measurement (\\n  id        INTEGER PRIMARY KEY AUTOINCREMENT,\\n  sensor_id INTEGER NOT NULL REFERENCES sensor(id),\\n  ts        INTEGER NOT NULL,        -- Unix-Zeit in Millisekunden (UTC)\\n  value     REAL    NOT NULL\\n);\",\n  \"CREATE INDEX IF NOT EXISTS idx_measurement_sensor_ts ON measurement(sensor_id, ts);\",\n  \"INSERT OR IGNORE INTO sensor (id, node_id, name, unit)\\nVALUES (1, 'ns=2;s=Demo.Alarms.Plant.PowerHouse.P-101.Vibration', 'P-101 Vibration', 'mm/s');\"\n];\nreturn [sql.map(s => ({ topic: s, payload: \"\" }))];",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "ddl_delay"
+      ]
+    ],
+    "x": 320,
+    "y": 360
+  },
+  {
+    "id": "ddl_delay",
+    "type": "delay",
+    "z": "tab_vib",
+    "name": "der Reihe nach",
+    "pauseType": "rate",
+    "timeout": "5",
+    "timeoutUnits": "seconds",
+    "rate": "5",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 480,
+    "y": 360,
+    "wires": [
+      [
+        "sql_ddl"
+      ]
+    ]
+  },
+  {
+    "id": "sql_ddl",
+    "type": "sqlite",
+    "z": "tab_vib",
+    "mydb": "db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "DDL",
+    "x": 650,
+    "y": 360,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "db_ins",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "INSERT",
+    "func": "const v = Number(msg.payload.value);\nconst ts = Date.parse(msg.payload.timestamp);\nif (!Number.isFinite(v) || !Number.isFinite(ts)) return null;\nreturn { topic: \"INSERT INTO measurement (sensor_id, ts, value) VALUES (1, \" + ts + \", \" + v + \")\", payload: \"\" };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "sql_ins"
+      ]
+    ],
+    "x": 700,
+    "y": 400
+  },
+  {
+    "id": "sql_ins",
+    "type": "sqlite",
+    "z": "tab_vib",
+    "mydb": "db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "Messwert speichern",
+    "x": 920,
+    "y": 400,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "c7",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 5 + 7: REST-Endpunkte",
+    "info": "",
+    "x": 190,
+    "y": 470,
+    "wires": []
+  },
+  {
+    "id": "http_avg",
+    "type": "http in",
+    "z": "tab_vib",
+    "name": "",
+    "url": "/api/vibration/avg5min",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 510,
+    "wires": [
+      [
+        "avg_sql"
+      ]
+    ]
+  },
+  {
+    "id": "avg_sql",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Query Ø 5 min",
+    "func": "msg.topic = \"SELECT AVG(value) AS avg, COUNT(*) AS count FROM measurement WHERE sensor_id = 1 AND ts >= (CAST(strftime('%s', 'now') AS INTEGER) - 300) * 1000\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "sql_avg"
+      ]
+    ],
+    "x": 340,
+    "y": 510
+  },
+  {
+    "id": "sql_avg",
+    "type": "sqlite",
+    "z": "tab_vib",
+    "mydb": "db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "Ø",
+    "x": 520,
+    "y": 510,
+    "wires": [
+      [
+        "avg_out"
+      ]
+    ]
+  },
+  {
+    "id": "avg_out",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Antwort",
+    "func": "const row = (msg.payload && msg.payload[0]) || { avg: null, count: 0 };\nmsg.payload = { avg: row.avg, count: row.count, unit: \"mm/s\", windowSeconds: 300 };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "http_res_avg"
+      ]
+    ],
+    "x": 680,
+    "y": 510
+  },
+  {
+    "id": "http_res_avg",
+    "type": "http response",
+    "z": "tab_vib",
+    "name": "",
+    "statusCode": "200",
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "application/json"
+    },
+    "x": 850,
+    "y": 510,
+    "wires": []
+  },
+  {
+    "id": "http_last",
+    "type": "http in",
+    "z": "tab_vib",
+    "name": "",
+    "url": "/api/vibration/last5min",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 570,
+    "wires": [
+      [
+        "last_sql"
+      ]
+    ]
+  },
+  {
+    "id": "last_sql",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Query 5 min",
+    "func": "msg.topic = \"SELECT ts, value FROM measurement WHERE sensor_id = 1 AND ts >= (CAST(strftime('%s', 'now') AS INTEGER) - 300) * 1000 ORDER BY ts\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "sql_last"
+      ]
+    ],
+    "x": 340,
+    "y": 570
+  },
+  {
+    "id": "sql_last",
+    "type": "sqlite",
+    "z": "tab_vib",
+    "mydb": "db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "5 min",
+    "x": 520,
+    "y": 570,
+    "wires": [
+      [
+        "last_out"
+      ]
+    ]
+  },
+  {
+    "id": "last_out",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Antwort",
+    "func": "msg.payload = msg.payload || [];\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "http_res_last"
+      ]
+    ],
+    "x": 680,
+    "y": 570
+  },
+  {
+    "id": "http_res_last",
+    "type": "http response",
+    "z": "tab_vib",
+    "name": "",
+    "statusCode": "200",
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "application/json"
+    },
+    "x": 850,
+    "y": 570,
+    "wires": []
+  },
+  {
+    "id": "ui_base",
+    "type": "ui-base",
+    "name": "Industrie 4.0",
+    "path": "/dashboard",
+    "includeClientData": true,
+    "acceptsClientConfig": [
+      "ui-notification",
+      "ui-control"
+    ],
+    "showPathInSidebar": false,
+    "navigationStyle": "default",
+    "titleBarStyle": "default"
+  },
+  {
+    "id": "ui_theme",
+    "type": "ui-theme",
+    "name": "Standard",
+    "colors": {
+      "surface": "#0a0f14",
+      "primary": "#35d06f",
+      "bgPage": "#0a0f14",
+      "groupBg": "#141c23",
+      "groupOutline": "#2b3640"
+    },
+    "sizes": {
+      "pagePadding": "12px",
+      "groupGap": "12px",
+      "groupBorderRadius": "4px",
+      "widgetGap": "12px"
+    }
+  },
+  {
+    "id": "ui_page",
+    "type": "ui-page",
+    "name": "Power House",
+    "ui": "ui_base",
+    "path": "/power-house",
+    "icon": "home",
+    "layout": "grid",
+    "theme": "ui_theme",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": "0",
+        "cols": "3"
+      },
+      {
+        "name": "Tablet",
+        "px": "576",
+        "cols": "6"
+      },
+      {
+        "name": "Small Desktop",
+        "px": "768",
+        "cols": "9"
+      },
+      {
+        "name": "Desktop",
+        "px": "1024",
+        "cols": "12"
+      }
+    ],
+    "order": 1,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "ui_group",
+    "type": "ui-group",
+    "name": "P-101",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "c10",
+    "type": "comment",
+    "z": "tab_vib",
+    "name": "Aufgabe 10: Dashboard (http://<pi>:1880/dashboard)",
+    "info": "",
+    "x": 220,
+    "y": 640,
+    "wires": []
+  },
+  {
+    "id": "ui_gauge",
+    "type": "ui-gauge",
+    "z": "tab_vib",
+    "name": "Vibration",
+    "group": "ui_group",
+    "order": 1,
+    "width": 4,
+    "height": 4,
+    "gtype": "gauge-half",
+    "gstyle": "needle",
+    "title": "Vibration",
+    "units": "mm/s",
+    "icon": "",
+    "prefix": "",
+    "suffix": "mm/s",
+    "segments": [
+      {
+        "from": "0",
+        "color": "#35d06f"
+      },
+      {
+        "from": "4.5",
+        "color": "#ffc107"
+      },
+      {
+        "from": "7.1",
+        "color": "#ff3b30"
+      }
+    ],
+    "min": 0,
+    "max": 10,
+    "sizeThickness": 16,
+    "sizeGap": 4,
+    "sizeKeyThickness": 8,
+    "styleRounded": true,
+    "styleGlow": false,
+    "className": "",
+    "value": "payload.value",
+    "valueType": "msg",
+    "x": 940,
+    "y": 640,
+    "wires": []
+  },
+  {
+    "id": "ui_text",
+    "type": "ui-text",
+    "z": "tab_vib",
+    "group": "ui_group",
+    "order": 2,
+    "width": 2,
+    "height": 1,
+    "name": "Messwert",
+    "label": "Aktuell",
+    "format": "{{msg.payload.value}} mm/s",
+    "layout": "row-spread",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#717171",
+    "wrapText": false,
+    "className": "",
+    "value": "payload",
+    "valueType": "msg",
+    "x": 940,
+    "y": 690,
+    "wires": []
+  }
+]
