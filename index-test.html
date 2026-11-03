@@ -1,4 +1,3 @@
-```html
 <!doctype html>
 <html lang="de">
 
@@ -13,6 +12,15 @@
 
   <!-- AR.js -->
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
+
+  <!-- MQTT.js (MQTT über WebSocket) -->
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+
+  <!-- Chart.js (Verlauf) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- Live-Daten-Styles -->
+  <link rel="stylesheet" href="assets/live.css">
 
   <style>
 
@@ -934,6 +942,15 @@
         </button>
 
 
+        <!-- Live-Daten -->
+        <button
+          id="data-button"
+          class="home-button"
+        >
+          Live-Daten &amp; Verlauf
+        </button>
+
+
         <!-- Datum / Uhrzeit -->
         <div id="home-datetime">
 
@@ -1020,7 +1037,7 @@
         </span>
 
         <span>
-          Serverstatus
+          Live-Daten &amp; Serverstatus
         </span>
 
       </button>
@@ -1185,8 +1202,13 @@
               Vibration
             </span>
 
-            <span class="sensor-value">
-              2,4 mm/s
+            <span>
+              <span class="sensor-value" id="vibration-value">
+                2,4 mm/s
+              </span>
+              <span class="live-tag" id="vibration-tag" data-state="demo">
+                Demo
+              </span>
             </span>
 
           </div>
@@ -1251,6 +1273,124 @@
           </li>
 
         </ul>
+
+      </div>
+
+    </section>
+
+    <!-- ==================================================
+         LIVE-DATEN PANEL
+         ================================================== -->
+
+    <section id="data-panel" aria-label="Live-Daten und Verlauf">
+
+      <button
+        id="data-close"
+        aria-label="Live-Daten schließen"
+      >
+        ×
+      </button>
+
+      <h2 id="data-title">Pumpe P-101 · Vibration</h2>
+      <p id="data-subtitle">OPC UA → Node-RED → WebSocket / MQTT / REST → Smartphone</p>
+
+      <div class="data-grid">
+
+        <!-- Aktueller Wert -->
+        <div class="data-card">
+          <h2>Aktueller Wert <span class="task">Aufgabe 2</span></h2>
+          <div id="live-value">—</div>
+          <div id="live-meta"></div>
+        </div>
+
+        <!-- Verbindungen -->
+        <div class="data-card">
+          <h2>Verbindungen</h2>
+          <ul class="conn-list">
+            <li data-conn="mqtt">
+              <span class="dot" data-state="off"></span>
+              <span class="conn-name">MQTT</span>
+              <span class="conn-text">nicht gestartet</span>
+            </li>
+            <li data-conn="ws">
+              <span class="dot" data-state="off"></span>
+              <span class="conn-name">WebSocket</span>
+              <span class="conn-text">nicht konfiguriert</span>
+            </li>
+            <li data-conn="api">
+              <span class="dot" data-state="off"></span>
+              <span class="conn-name">REST</span>
+              <span class="conn-text">nicht konfiguriert</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- MQTT als Text -->
+        <div class="data-card wide">
+          <h2>MQTT-Nachricht als Text <span class="task">Aufgabe 4</span></h2>
+          <pre id="mqtt-raw">Warte auf die nächste Nachricht …</pre>
+          <div class="hint">Topic: <span class="mono" id="topic-own"></span></div>
+        </div>
+
+        <!-- Verlauf -->
+        <div class="data-card wide">
+          <h2>
+            Verlauf der letzten 5 Minuten
+            <span class="task">Aufgabe 5, 7, 8</span>
+          </h2>
+          <div id="avg-value"></div>
+          <div class="chart-box">
+            <canvas id="history-chart"></canvas>
+          </div>
+          <div class="hint">
+            <span id="history-source"></span>
+            <button type="button" class="small-button" id="history-refresh">Aktualisieren</button>
+          </div>
+        </div>
+
+        <!-- Fremde Topics -->
+        <div class="data-card wide">
+          <h2>Andere Kisten auf dem Broker <span class="task">Aufgabe 3.1</span></h2>
+          <div class="table-wrap">
+            <table class="foreign-table">
+              <thead>
+                <tr>
+                  <th>Kiste</th>
+                  <th>Format</th>
+                  <th>Wert</th>
+                  <th>Msg/min</th>
+                  <th>Größe</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="foreign-body"></tbody>
+            </table>
+          </div>
+          <div class="hint">
+            Abonniert wird <span class="mono">/bbk-lf7/+/power-house/vibration</span>.
+            „als Quelle“ nutzt eine fremde Kiste für die Anzeige, solange der eigene Pi nicht erreichbar ist.
+          </div>
+        </div>
+
+        <!-- Einstellungen -->
+        <div class="data-card wide">
+          <h2>Einstellungen</h2>
+          <form id="cfg-form" class="cfg-form" autocomplete="off">
+            <label>
+              Kistennummer
+              <input id="cfg-kiste" inputmode="numeric" placeholder="z. B. 7">
+            </label>
+            <label>
+              WebSocket-URL (Node-RED, z. B. wss://xyz.lhr.life/ws/vibration)
+              <input id="cfg-ws" type="url" placeholder="wss://…">
+            </label>
+            <label>
+              REST-Basis-URL (z. B. https://xyz.lhr.life)
+              <input id="cfg-api" type="url" placeholder="https://…">
+            </label>
+            <button type="submit">Speichern</button>
+          </form>
+        </div>
 
       </div>
 
@@ -1501,9 +1641,7 @@
           'open'
         );
 
-        alert(
-          'Server verbunden'
-        );
+        window.LiveData.open();
 
       }
     );
@@ -1528,6 +1666,18 @@
       () => {
 
         showStation();
+
+      }
+    );
+
+
+    document.getElementById(
+      'data-button'
+    ).addEventListener(
+      'click',
+      () => {
+
+        window.LiveData.open();
 
       }
     );
@@ -1885,7 +2035,9 @@
 
   </script>
 
+  <!-- Live-Daten: MQTT, WebSocket, REST, Chart -->
+  <script src="assets/live.js"></script>
+
 </body>
 
 </html>
-```
