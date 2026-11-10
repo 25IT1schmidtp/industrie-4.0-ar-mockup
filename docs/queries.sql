@@ -31,3 +31,10 @@ ORDER BY minute_ts;
 -- Aufgabe 9.1: Alte Rohdaten löschen (Aufbewahrung 24 h)
 DELETE FROM measurement
 WHERE ts < (CAST(strftime('%s', 'now') AS INTEGER) - 86400) * 1000;
+
+-- Letzter Wert  ->  GET /api/vibration/latest
+SELECT ts, value
+FROM measurement
+WHERE sensor_id = 1
+ORDER BY ts DESC
+LIMIT 1;

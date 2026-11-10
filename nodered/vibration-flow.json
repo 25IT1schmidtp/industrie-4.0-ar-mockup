@@ -426,7 +426,7 @@
     "id": "c7",
     "type": "comment",
     "z": "tab_vib",
-    "name": "Aufgabe 5 + 7: REST-Endpunkte",
+    "name": "Aufgabe 5 + 6 + 7 + 8: REST-Endpunkte",
     "info": "",
     "x": 190,
     "y": 470,
@@ -689,13 +689,100 @@
     "groupType": "default"
   },
   {
+    "id": "http_latest",
+    "type": "http in",
+    "z": "tab_vib",
+    "name": "",
+    "url": "/api/vibration/latest",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 630,
+    "wires": [
+      [
+        "latest_sql"
+      ]
+    ]
+  },
+  {
+    "id": "latest_sql",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Query letzter Wert",
+    "func": "msg.topic = \"SELECT ts, value FROM measurement WHERE sensor_id = 1 ORDER BY ts DESC LIMIT 1\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 630,
+    "wires": [
+      [
+        "sql_latest"
+      ]
+    ]
+  },
+  {
+    "id": "sql_latest",
+    "type": "sqlite",
+    "z": "tab_vib",
+    "mydb": "db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "letzter Wert",
+    "x": 520,
+    "y": 630,
+    "wires": [
+      [
+        "latest_out"
+      ]
+    ]
+  },
+  {
+    "id": "latest_out",
+    "type": "function",
+    "z": "tab_vib",
+    "name": "Antwort",
+    "func": "const row = msg.payload && msg.payload[0];\nmsg.payload = row ? { ts: row.ts, value: row.value, unit: \"mm/s\" } : { ts: null, value: null, unit: \"mm/s\" };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 680,
+    "y": 630,
+    "wires": [
+      [
+        "http_res_latest"
+      ]
+    ]
+  },
+  {
+    "id": "http_res_latest",
+    "type": "http response",
+    "z": "tab_vib",
+    "name": "",
+    "statusCode": "200",
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "application/json"
+    },
+    "x": 850,
+    "y": 630,
+    "wires": []
+  },
+  {
     "id": "c10",
     "type": "comment",
     "z": "tab_vib",
     "name": "Aufgabe 10: Dashboard (http://<pi>:1880/dashboard)",
     "info": "",
     "x": 220,
-    "y": 640,
+    "y": 700,
     "wires": []
   },
   {
@@ -739,7 +826,7 @@
     "value": "payload.value",
     "valueType": "msg",
     "x": 940,
-    "y": 640,
+    "y": 700,
     "wires": []
   },
   {
@@ -763,7 +850,7 @@
     "value": "payload",
     "valueType": "msg",
     "x": 940,
-    "y": 690,
+    "y": 750,
     "wires": []
   }
 ]

@@ -47,18 +47,20 @@ flowchart LR
 | 1 | OPC UA lesen, Debug-Ausgabe | Flow: `Milo` → `Vibration (Aufgabe 1)` | nein, Flow auf dem Pi |
 | 2 | WebSocket + Anzeige | Flow: `websocket out`, App: Technik-Ansicht „Aktueller Wert“ | App ja, mit Mock |
 | 3 | MQTT publish | Flow: `HiveMQ publish` | nein |
-| 3.1 | Fremde Topics | App: Technik-Ansicht „Andere Kisten auf dem Broker“, Flow: Debug `/bbk-lf7/#` | ja, live |
+| 3 (Fremde Topics) | Fremde Topics, Unterschiede | App: Technik-Ansicht „Andere Kisten auf dem Broker“, Flow: Debug `/bbk-lf7/#` | ja, live |
 | 4 | MQTT in der App als Text | App: Technik-Ansicht „MQTT-Nachricht im Klartext“ | ja, live |
-| 5 | Datenbank + Ø 5 min | Flow: SQLite + `GET /api/vibration/avg5min` | nein |
-| 7 | Daten der letzten 5 min | Flow: `GET /api/vibration/last5min` | nein |
-| 8 | Verlauf als Chart | App: Chart.js | App ja, mit Mock |
-| 9 | Datenmengen | unten | – |
+| 5 | Datenbank, Schema, SQL | Flow: SQLite, `docs/schema.sql`, `docs/queries.sql` | nein |
+| 6 | REST: letzter Wert | Flow: `GET /api/vibration/latest` | nein |
+| 7 | REST: Daten der letzten 5 min | Flow: `GET /api/vibration/last5min` | nein |
+| 8 | REST: Durchschnitt der letzten 5 min | Flow: `GET /api/vibration/avg5min` | nein |
+| 9 | Historie als Chart | App: Chart.js in der Technik-Ansicht | App ja, mit Mock |
+| 10 | Datenmengen pro Tag, Reduktion | unten | – |
 | 10 | Dashboard 2.0 | Flow: `ui-gauge`, `ui-text` auf `/dashboard` | nein |
 
 Die App fällt ohne Pi sauber zurück: MQTT läuft direkt zum Broker, der Verlauf kommt aus einem Browser-Puffer,
 und über „als Quelle“ lässt sich die Kiste einer anderen Gruppe als Datenquelle nutzen.
 
-## 3.1 Fremde Topics: Unterschiede
+## 3 Fremde Topics: Unterschiede
 
 Gemessen am 03.11.2026 mit `/bbk-lf7/#` (Auszug, drei Gruppen mit ca. 1 Nachricht/s):
 
@@ -72,7 +74,7 @@ Alle Gruppen lesen dieselbe OPC-UA-Node, die Werte sind also identisch bis auf R
 Unterschiede: Format (Zahl oder JSON), Feldnamen (`timestamp` oder `sourceTimestamp`), Rundung, Einheit/Grenzwerte, Größe.
 Die App wertet alle drei Varianten aus (`parsePayload` in `assets/live.js`).
 
-## 5.1 Relationsschema
+## 5 Relationsschema
 
 ```
 sensor      (id PK, node_id UNIQUE, name, unit)
@@ -81,9 +83,19 @@ measurement (id PK, sensor_id FK → sensor.id, ts, value)      Index (sensor_id
 
 `ts` ist Unix-Zeit in Millisekunden (UTC). Vollständiges DDL: [`schema.sql`](schema.sql).
 
-## 5.2 SQL-Abfragen
+## 5 SQL-Abfragen
 
-Durchschnitt der letzten 5 Minuten (`GET /api/vibration/avg5min`):
+Letzter Wert (`GET /api/vibration/latest`, Aufgabe 6):
+
+```sql
+SELECT ts, value
+FROM measurement
+WHERE sensor_id = 1
+ORDER BY ts DESC
+LIMIT 1;
+```
+
+Durchschnitt der letzten 5 Minuten (`GET /api/vibration/avg5min`, Aufgabe 8):
 
 ```sql
 SELECT AVG(value) AS avg, COUNT(*) AS count
@@ -104,7 +116,7 @@ ORDER BY ts;
 
 Weitere Abfragen in [`queries.sql`](queries.sql). Beide Abfragen sind gegen eine echte SQLite-Datenbank geprüft.
 
-## 9 Datenmengen pro Tag
+## 10 Datenmengen pro Tag
 
 Der Server liefert ca. 1 Wert/s, das sind **86 400 Messwerte pro Tag** (bei Änderungs-Subscription ohne Filter).
 
@@ -117,7 +129,7 @@ Der Server liefert ca. 1 Wert/s, das sind **86 400 Messwerte pro Tag** (bei Änd
 Auf einem Jahr hochgerechnet sind das ca. 1,4 GB Datenbank für einen einzigen Sensor.
 Die genaue Zahl im eigenen Betrieb liefert die Abfrage „Messwerte pro Tag“ in `queries.sql`.
 
-### 9.1 Reduktion
+### Reduktion der Datenmengen
 
 1. **Weniger abtasten:** Subscription-Intervall von 1 s auf z. B. 10 s. Faktor 10.
 2. **Nur bei Änderung senden (Deadband):** Im OPC-UA-Node einen Deadband-Filter setzen. Bringt viel bei ruhigen Signalen, wenig bei dauernd schwankenden.
